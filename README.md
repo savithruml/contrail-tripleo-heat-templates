@@ -112,29 +112,6 @@ EOF
 done
 ```
 
-## prepare undercloud VM
-```
-export LIBGUESTFS_BACKEND=direct
-qemu-img create -f qcow2 undercloud.qcow2 100G
-virt-resize --expand /dev/sda1 rhel-guest-image-7.3-35.x86_64.qcow2 undercloud.qcow2
-virt-customize  -a undercloud.qcow2 \
-  --run-command 'xfs_growfs /' \
-  --root-password password:$ROOTPASSWORD \
-  --hostname undercloud.local \
-  --sm-credentials $USER:password:$PASSWORD --sm-register --sm-attach auto --sm-attach pool:$POOLID \
-  --run-command 'useradd stack' \
-  --password stack:password:$STACKPASSWORD \
-  --run-command 'echo "stack ALL=(root) NOPASSWD:ALL" | tee -a /etc/sudoers.d/stack' \
-  --chmod 0440:/etc/sudoers.d/stack \
-  --run-command 'subscription-manager repos --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-rh-common-rpms --enable=rhel-ha-for-rhel-7-server-rpms --enable=rhel-7-server-openstack-10-rpms' \
-  --install python-tripleoclient \
-  --run-command 'sed -i "s/PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config' \
-  --run-command 'systemctl enable sshd' \
-  --run-command 'yum remove -y cloud-init' \
-  --selinux-relabel
-sudo cp undercloud.qcow2 /var/lib/libvirt/images/undercloud.qcow2
-```
-
 ## install undercloud VM (single nic)
 ```
 sudo virt-install --name undercloud \
@@ -168,6 +145,30 @@ sudo virt-install --name undercloud \
   --serial pty \
   --noautoconsole \
   --console pty,target_type=virtio
+```
+
+
+## prepare undercloud VM
+```
+export LIBGUESTFS_BACKEND=direct
+qemu-img create -f qcow2 undercloud.qcow2 100G
+virt-resize --expand /dev/sda1 rhel-guest-image-7.3-35.x86_64.qcow2 undercloud.qcow2
+virt-customize  -a undercloud.qcow2 \
+  --run-command 'xfs_growfs /' \
+  --root-password password:$ROOTPASSWORD \
+  --hostname undercloud.local \
+  --sm-credentials $USER:password:$PASSWORD --sm-register --sm-attach auto --sm-attach pool:$POOLID \
+  --run-command 'useradd stack' \
+  --password stack:password:$STACKPASSWORD \
+  --run-command 'echo "stack ALL=(root) NOPASSWD:ALL" | tee -a /etc/sudoers.d/stack' \
+  --chmod 0440:/etc/sudoers.d/stack \
+  --run-command 'subscription-manager repos --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-rh-common-rpms --enable=rhel-ha-for-rhel-7-server-rpms --enable=rhel-7-server-openstack-10-rpms' \
+  --install python-tripleoclient \
+  --run-command 'sed -i "s/PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config' \
+  --run-command 'systemctl enable sshd' \
+  --run-command 'yum remove -y cloud-init' \
+  --selinux-relabel
+sudo cp undercloud.qcow2 /var/lib/libvirt/images/undercloud.qcow2
 ```
 
 ## get undercloud ip (depending on the number of attempts their might be multiple leases)
